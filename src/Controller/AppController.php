@@ -16,6 +16,8 @@ class AppController extends Controller
             $this->loadComponent('Authentication.Authentication');
         }
 
+        // ❌ REMOVE this line:
+        // $this->loadComponent('Paginator');
     }
 
     public function beforeFilter(EventInterface $event)
@@ -50,4 +52,3 @@ class AppController extends Controller
         return strtolower(trim($identity->role ?? 'guest'));
     }
 }
-

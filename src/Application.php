@@ -1,5 +1,26 @@
 <?php
+declare(strict_types=1);
+
+namespace App;
+
+use Cake\Core\Configure;
+use Cake\Core\ContainerInterface;
+use Cake\Datasource\FactoryLocator;
+use Cake\Error\Middleware\ErrorHandlerMiddleware;
+use Cake\Http\BaseApplication;
+use Cake\Http\Middleware\BodyParserMiddleware;
+use Cake\Http\Middleware\CsrfProtectionMiddleware;
+use Cake\Http\MiddlewareQueue;
+use Cake\ORM\Locator\TableLocator;
+use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
+
+// Older CakePHP releases (such as 4.3) located BaseApplication in Cake\Core.
+// Provide a runtime alias so the class can still be located when the project
+// is installed alongside those dependencies (e.g. in legacy PHP 7.4 stacks).
+if (!class_exists(\Cake\Http\BaseApplication::class) && class_exists(\Cake\Core\BaseApplication::class)) {
+    class_alias(\Cake\Core\BaseApplication::class, \Cake\Http\BaseApplication::class);
+}
 
 // Authentication imports
 use Authentication\AuthenticationService;
@@ -29,9 +50,9 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         ]);
 
         $csrf->skipCheckCallback(function ($request) {
-            $path = $request->getPath();
+            $path = ltrim($request->getPath(), '/');
 
-            return strpos($path, '/api/') === 0 || strpos($path, 'api/') === 0;
+            return strncmp($path, 'api', 3) === 0;
         });
 
         $middlewareQueue
@@ -42,6 +63,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ->add(new RoutingMiddleware($this))
             ->add(new BodyParserMiddleware())
             ->add(new AuthenticationMiddleware($this))
+
             ->add($csrf);
 
         return $middlewareQueue;
@@ -67,6 +89,5 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
         // ✅ Fix: make loginUrl dynamic so it works in subfolder installs like /ricemillsys/
         $loginUrl = $request->getAttribute('webroot') . 'users/login';
-
-}
+    }
 }
