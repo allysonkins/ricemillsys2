@@ -1,16 +1,4 @@
 <?php
-declare(strict_types=1);
-
-namespace App\Controller;
-
-use Cake\Controller\Controller;
-use Cake\Event\EventInterface;
-
-/**
- * Application Controller
- *
- * Base controller for all other controllers.
- */
 class AppController extends Controller
 {
     public function initialize(): void
@@ -28,16 +16,16 @@ class AppController extends Controller
             $this->loadComponent('Authentication.Authentication');
         }
 
-        // ❌ REMOVE this line:
-        // $this->loadComponent('Paginator');
     }
 
     public function beforeFilter(EventInterface $event)
     {
         parent::beforeFilter($event);
 
-        // ✅ Allow unauthenticated access for login and register
-        $this->Authentication->addUnauthenticatedActions(['login', 'register']);
+        // ✅ Allow unauthenticated access for login and register when Authentication is available
+        if ($this->components()->has('Authentication')) {
+            $this->Authentication->addUnauthenticatedActions(['login', 'register']);
+        }
 
         // ✅ Enable JSON view automatically for API requests
         if ($this->request->is('json') || $this->request->accepts('application/json')) {
@@ -62,3 +50,4 @@ class AppController extends Controller
         return strtolower(trim($identity->role ?? 'guest'));
     }
 }
+

@@ -22,4 +22,28 @@ return function (RouteBuilder $routes): void {
 
         $builder->fallbacks(DashedRoute::class);
     });
+
+    $routes->prefix('api', function (RouteBuilder $builder): void {
+        $builder->setExtensions(['json']);
+        $builder->setRouteClass(DashedRoute::class);
+
+        $builder->connect('/login', ['controller' => 'Users', 'action' => 'login'])
+            ->setMethods(['POST']);
+
+        $builder->connect('/profile', ['controller' => 'Users', 'action' => 'profile'])
+            ->setMethods(['GET']);
+
+        $builder->connect('/orders', ['controller' => 'MillingOrders', 'action' => 'index'])
+            ->setMethods(['GET']);
+
+        $builder->connect('/orders/:id', ['controller' => 'MillingOrders', 'action' => 'view'])
+            ->setPass(['id'])
+            ->setMethods(['GET'])
+            ->setPatterns(['id' => '\\d+']);
+
+        $builder->connect('/orders', ['controller' => 'MillingOrders', 'action' => 'add'])
+            ->setMethods(['POST']);
+
+        $builder->fallbacks(DashedRoute::class);
+    });
 };

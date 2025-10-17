@@ -1,18 +1,4 @@
 <?php
-declare(strict_types=1);
-
-namespace App;
-
-use Cake\Core\Configure;
-use Cake\Core\ContainerInterface;
-use Cake\Datasource\FactoryLocator;
-use Cake\Error\Middleware\ErrorHandlerMiddleware;
-use Cake\Http\BaseApplication;
-use Cake\Http\Middleware\BodyParserMiddleware;
-use Cake\Http\Middleware\CsrfProtectionMiddleware;
-use Cake\Http\MiddlewareQueue;
-use Cake\ORM\Locator\TableLocator;
-use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
 
 // Authentication imports
@@ -38,6 +24,16 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
     public function middleware(MiddlewareQueue $middlewareQueue): MiddlewareQueue
     {
+        $csrf = new CsrfProtectionMiddleware([
+            'httponly' => true,
+        ]);
+
+        $csrf->skipCheckCallback(function ($request) {
+            $path = $request->getPath();
+
+            return strpos($path, '/api/') === 0 || strpos($path, 'api/') === 0;
+        });
+
         $middlewareQueue
             ->add(new ErrorHandlerMiddleware(Configure::read('Error'), $this))
             ->add(new AssetMiddleware([
@@ -46,9 +42,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ->add(new RoutingMiddleware($this))
             ->add(new BodyParserMiddleware())
             ->add(new AuthenticationMiddleware($this))
-            ->add(new CsrfProtectionMiddleware([
-                'httponly' => true,
-            ]));
+            ->add($csrf);
 
         return $middlewareQueue;
     }
@@ -74,16 +68,5 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         // ✅ Fix: make loginUrl dynamic so it works in subfolder installs like /ricemillsys/
         $loginUrl = $request->getAttribute('webroot') . 'users/login';
 
-        $service->loadAuthenticator('Authentication.Form', [
-            'fields' => $fields,
-            'loginUrl' => $loginUrl,
-        ]);
-
-        return $service;
-    }
-
-    public function services(ContainerInterface $container): void
-    {
-        // Register DI services here if needed
-    }
+}
 }
