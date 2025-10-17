@@ -49,12 +49,6 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             'httponly' => true,
         ]);
 
-        $csrf->skipCheckCallback(function ($request) {
-            $path = ltrim($request->getPath(), '/');
-
-            return strncmp($path, 'api', 3) === 0;
-        });
-
         $middlewareQueue
             ->add(new ErrorHandlerMiddleware(Configure::read('Error'), $this))
             ->add(new AssetMiddleware([
@@ -63,7 +57,6 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ->add(new RoutingMiddleware($this))
             ->add(new BodyParserMiddleware())
             ->add(new AuthenticationMiddleware($this))
-
             ->add($csrf);
 
         return $middlewareQueue;
@@ -87,7 +80,23 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
         $service->loadAuthenticator('Authentication.Session');
 
-        // ✅ Fix: make loginUrl dynamic so it works in subfolder installs like /ricemillsys/
-        $loginUrl = $request->getAttribute('webroot') . 'users/login';
+
+        $webroot = (string)$request->getAttribute('webroot');
+        if ($webroot === '') {
+            $webroot = '/';
+        }
+
+        $service->loadAuthenticator('Authentication.Form', [
+            'fields' => $fields,
+            'loginUrl' => $loginUrl,
+            'loginUrl' => rtrim($webroot, '/') . '/users/login',
+        ]);
+
+        return $service;
+    }
+
+    public function services(ContainerInterface $container): void
+    {
+        // Register DI services here if needed
     }
 }

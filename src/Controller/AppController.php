@@ -1,5 +1,16 @@
 <?php
-class AppController extends Controller
+declare(strict_types=1);
+
+namespace App\Controller;
+
+use Cake\Event\EventInterface;
+
+/**
+ * Application Controller
+ *
+ * Base controller for all other controllers.
+ */
+class AppController extends \Cake\Controller\Controller
 {
     public function initialize(): void
     {
