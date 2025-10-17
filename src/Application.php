@@ -80,16 +80,21 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
         $service->loadAuthenticator('Authentication.Session');
 
-
-        $webroot = (string)$request->getAttribute('webroot');
-        if ($webroot === '') {
+        $webroot = $request->getAttribute('webroot');
+        if (!is_string($webroot) || $webroot === '') {
             $webroot = '/';
+        }
+
+        $loginUrl = rtrim($webroot, '/');
+        if ($loginUrl === '') {
+            $loginUrl = '/users/login';
+        } else {
+            $loginUrl .= '/users/login';
         }
 
         $service->loadAuthenticator('Authentication.Form', [
             'fields' => $fields,
             'loginUrl' => $loginUrl,
-            'loginUrl' => rtrim($webroot, '/') . '/users/login',
         ]);
 
         return $service;

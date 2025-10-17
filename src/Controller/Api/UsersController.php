@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace App\Controller\Api;
 
 use App\Model\Entity\User;
-use Authentication\PasswordHasher\DefaultPasswordHasher;
 use Cake\Datasource\Exception\RecordNotFoundException;
 
 class UsersController extends AppController
@@ -40,40 +39,41 @@ class UsersController extends AppController
     {
         $this->request->allowMethod(['post']);
 
-        $data = $this->getRequestPayload();
-        $username = isset($data['username']) ? trim((string)$data['username']) : '';
-        $password = isset($data['password']) ? (string)$data['password'] : '';
-
-        if ($username === '' || $password === '') {
-            $this->respondError('Username and password are required.', 422);
+        if (!$this->components()->has('Authentication')) {
+            $this->respondError('Authentication component is unavailable.', 500);
             return;
         }
 
-        $user = $this->Users->find()
-            ->where(['username' => $username])
-            ->first();
+        $result = $this->Authentication->getResult();
 
-        if (!$user) {
-            $this->respondError('Invalid username or password.', 401);
-            return;
-        }
+        if ($result && $result->isValid()) {
+            $identity = $result->getData();
+            if ($identity instanceof User) {
+                $user = $identity;
+            } else {
+                $userId = is_array($identity) ? ($identity['id'] ?? null) : ($identity->id ?? null);
+                $user = null;
+                if ($userId !== null) {
+                    $user = $this->Users->find()->where(['Users.id' => (int)$userId])->first();
+                }
+                if (!$user) {
+                    $this->respondError('Unable to load authenticated user.', 500);
+                    return;
+                }
+            }
 
-        $hasher = new DefaultPasswordHasher();
-        if (!$hasher->check($password, (string)$user->password)) {
-            $this->respondError('Invalid username or password.', 401);
-            return;
-        }
-
-        if ($this->components()->has('Authentication')) {
-            $this->Authentication->setIdentity($user);
             if (method_exists($this->Authentication, 'regenerateSessionId')) {
                 $this->Authentication->regenerateSessionId();
             }
+
+            $this->respondSuccess([
+                'user' => $this->serializeUser($user),
+            ]);
+
+            return;
         }
 
-        $this->respondSuccess([
-            'user' => $this->serializeUser($user),
-        ]);
+        $this->respondError('Invalid username or password.', 401);
     }
 
     /**
